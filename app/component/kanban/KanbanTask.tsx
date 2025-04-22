@@ -27,17 +27,17 @@ export default function KanbanTask({ task, column, onDragStart, onEditTask, onDe
         <div
             draggable
             onDragStart={handleDragStart}
-            className={`p-3 border rounded-lg ${columnColors[column]} ${priorityColors[task.priority]} cursor-move hover:shadow transition relative group`}
+            className={`p-3 bg-gray-100 rounded-lg cursor-move hover:shadow transition relative group`}
         >
             <div className="flex justify-between items-start">
                 <div onClick={handleClick} className="flex-1">
                     <div className="flex justify-between items-start">
                         <h3 className="font-medium">{task.title}</h3>
                         <span className={`text-xs px-2 py-1 rounded-full ${task.priority === 'high'
-                                ? 'bg-red-500 text-white'
+                                ? 'bg-red-400 text-white'
                                 : task.priority === 'medium'
-                                    ? 'bg-yellow-500 text-white'
-                                    : 'bg-green-500 text-white'
+                                    ? 'bg-yellow-400 text-white'
+                                    : 'bg-green-400 text-white'
                             }`}>
                             {task.priority}
                         </span>

@@ -37,12 +37,12 @@ export default function KanbanColumn({
 
     return (
         <div
-            className={`bg-white rounded-lg shadow-md p-4 h-full min-h-[400px] border-l-4 ${columnColors[column]}`}
+            className={`bg-white p-4 h-full min-h-[400px]`}
             onDrop={handleDrop}
             onDragOver={handleDragOver}
         >
             <h2 className="text-xl font-semibold mb-4 text-gray-700">
-                {title} <span className="text-gray-500 text-sm">({tasks.length})</span>
+                {title} <span>({tasks.length})</span>
             </h2>
             <div className="space-y-3">
                 {sortedTasks.length > 0 ? (

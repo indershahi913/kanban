@@ -5,6 +5,7 @@ import KanbanColumn from './KanbanColumn';
 import AddTaskForm from './AddTaskForm';
 import { Tasks, ColumnType, Task, Priority } from '@/types/kanban';
 import ConfirmationDialog from '../ui/ConfirmationDialog';
+import Modal from '../ui/Modal';
 
 type PriorityFilter = 'all' | Priority;
 
@@ -15,7 +16,13 @@ export default function KanbanBoard(): ReactNode {
         done: []
     });
     const STORAGE_KEY = 'kanban-tasks';
-    const [isAddingTask, setIsAddingTask] = useState(false);
+    const [modalState, setModalState] = useState<{
+        isOpen: boolean;
+        mode: 'add' | 'edit';
+    }>({
+        isOpen: false,
+        mode: 'add'
+    });
     const [editingTask, setEditingTask] = useState<Task | null>(null);
     const [draggedTask, setDraggedTask] = useState<{ taskId: number, fromColumn: ColumnType } | null>(null);
     const [taskToDelete, setTaskToDelete] = useState<number | null>(null);
@@ -99,7 +106,7 @@ export default function KanbanBoard(): ReactNode {
                 id: Date.now()
             }]
         }));
-        setIsAddingTask(false);
+        setModalState({ isOpen: false, mode: 'add' });
     };
 
     const updateTask = (updatedTask: Task) => {
@@ -115,7 +122,7 @@ export default function KanbanBoard(): ReactNode {
             }
             return updatedTasks;
         });
-        setEditingTask(null);
+        setModalState({ isOpen: false, mode: 'add' });
     };
 
     const handleDeleteTask = (taskId: number) => {
@@ -129,12 +136,23 @@ export default function KanbanBoard(): ReactNode {
         });
     };
 
+    const handleAddClick = () => {
+        setEditingTask(null);
+        setModalState({ isOpen: true, mode: 'add' });
+    };
+
+    const handleEditTask = (task: Task) => {
+        setEditingTask(task);
+        setModalState({ isOpen: true, mode: 'edit' });
+    };
+
     return (
         <div className="min-h-screen bg-gray-100 p-4 md:p-8">
-            <h1 className="text-2xl md:text-3xl font-bold text-gray-800 mb-6">Kanban Board</h1>
+            <h1 className="text-2xl md:text-3xl font-bold text-gray-800 mb-6 p-2 bg-white">Kanban Board</h1>
+            
 
             {/* Priority Filter Controls */}
-            <div className="mb-6 flex flex-wrap items-center gap-4">
+            <div className="mb-6 flex flex-wrap items-center gap-4 justify-end">
                 <div className="flex items-center space-x-2">
                     <span className="text-sm font-medium">Filter by priority:</span>
                     <div className="flex space-x-1">
@@ -160,40 +178,50 @@ export default function KanbanBoard(): ReactNode {
                 </div>
             </div>
 
-            {isAddingTask && (
+            {/* Modal for Add/Edit Task */}
+            <Modal
+                isOpen={modalState.isOpen}
+                onClose={() => setModalState({ isOpen: false, mode: 'add' })}
+                title={modalState.mode === 'add' ? 'Add New Task' : 'Edit Task'}
+            >
                 <AddTaskForm
-                    onSubmit={addNewTask}
-                    onCancel={() => setIsAddingTask(false)}
-                />
-            )}
-
-            {editingTask && (
-                <AddTaskForm
-                    initialData={{
+                    onSubmit={(taskData) => {
+                        if (modalState.mode === 'add') {
+                            addNewTask(taskData);
+                        } else if (editingTask) {
+                            updateTask({ ...taskData, id: editingTask.id });
+                        }
+                    }}
+                    onCancel={() => setModalState({ isOpen: false, mode: 'add' })}
+                    initialData={editingTask ? {
                         title: editingTask.title,
                         description: editingTask.description,
                         priority: editingTask.priority,
-                        column: Object.entries(tasks).find(([_, tasks]) =>
-                            tasks.some(t => t.id === editingTask.id)
+                        column: Object.entries(tasks).find(([_, colTasks]) =>
+                            colTasks.some(t => t.id === editingTask.id)
                         )?.[0] as ColumnType || 'todo'
-                    }}
-                    onSubmit={(taskData) => updateTask({
-                        ...taskData,
-                        id: editingTask.id
-                    })}
-                    onCancel={() => setEditingTask(null)}
+                    } : undefined}
                 />
-            )}
+            </Modal>
 
-            {!isAddingTask && !editingTask && (
-                <button
-                    onClick={() => setIsAddingTask(true)}
-                    className="bg-blue-500 hover:bg-blue-600 text-white px-4 py-2 rounded-lg shadow mb-6"
+            {/* Add Task Button */}
+            <button
+                onClick={handleAddClick}
+                className="fixed z-[99] bottom-8 right-8 bg-blue-500 hover:bg-blue-600 text-white p-4 rounded-full shadow-lg flex items-center justify-center"
+            >
+                <svg
+                    xmlns="http://www.w3.org/2000/svg"
+                    className="h-6 w-6"
+                    fill="none"
+                    viewBox="0 0 24 24"
+                    stroke="currentColor"
                 >
-                    Add New Task
-                </button>
-            )}
+                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 4v16m8-8H4" />
+                </svg>
+                <span className="sr-only">Add Task</span>
+            </button>
 
+            {/* Kanban Columns */}
             <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
                 <KanbanColumn
                     title="To Do"
@@ -201,7 +229,7 @@ export default function KanbanBoard(): ReactNode {
                     tasks={filteredTasks.todo}
                     onDragStart={handleDragStart}
                     onDrop={handleDrop}
-                    onEditTask={setEditingTask}
+                    onEditTask={handleEditTask}
                     onDeleteTask={setTaskToDelete}
                 />
                 <KanbanColumn
@@ -210,7 +238,7 @@ export default function KanbanBoard(): ReactNode {
                     tasks={filteredTasks.inProgress}
                     onDragStart={handleDragStart}
                     onDrop={handleDrop}
-                    onEditTask={setEditingTask}
+                    onEditTask={handleEditTask}
                     onDeleteTask={setTaskToDelete}
                 />
                 <KanbanColumn
@@ -219,7 +247,7 @@ export default function KanbanBoard(): ReactNode {
                     tasks={filteredTasks.done}
                     onDragStart={handleDragStart}
                     onDrop={handleDrop}
-                    onEditTask={setEditingTask}
+                    onEditTask={handleEditTask}
                     onDeleteTask={setTaskToDelete}
                 />
             </div>
